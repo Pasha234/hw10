@@ -1,0 +1,72 @@
+services:
+    nginx:
+        build:
+            context: ./nginx
+            dockerfile: Dockerfile
+        image: balance/nginx
+        container_name: nginx
+        ports:
+            - "80:80"
+        volumes:
+            - ./code:/data/mysite.local
+        networks:
+            - app-network
+    php:
+        build:
+            context: ./fpm
+            dockerfile: Dockerfile
+        working_dir: /data/mysite.local
+        image: balance/php
+        container_name: app1
+        env_file: code/docker.env
+        volumes:
+            - ./code:/data/mysite.local
+        networks:
+            - app-network
+
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
+        container_name: elasticsearch
+        environment:
+            - discovery.type=single-node
+            - ELASTIC_PASSWORD=test  # Пароль для суперпользователя (можно убрать)
+            - xpack.security.enabled=false  # Отключение авторизации (если не нужен security)
+            - bootstrap.memory_lock=true
+            - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+        volumes:
+            - esdata:/usr/share/elasticsearch/data
+        ports:
+            - "9200:9200"
+        networks:
+            - app-network
+        healthcheck:
+            interval: 10s
+            retries: 80
+            test: curl --write-out 'HTTP %{http_code}' --fail --silent --output /dev/null http://localhost:9200/
+
+    kibana:
+        image: docker.elastic.co/kibana/kibana:8.11.3
+        container_name: kibana
+        depends_on:
+            - elasticsearch
+        environment:
+            - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+        ports:
+            - "5601:5601"
+        networks:
+            - app-network
+
+# Volumes
+volumes:
+    cache:
+        driver: local
+    mysqldata:
+    esdata:
+        driver: local
+
+networks:
+    app-network:

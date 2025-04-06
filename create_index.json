@@ -1,0 +1,100 @@
+{
+    "settings": {
+        "analysis": {
+            "filter": {
+                "russian_stop": {
+                    "type": "stop",
+                    "stopwords": "_russian_"
+                },
+                "russian_stemmer": {
+                    "type": "stemmer",
+                    "language": "russian"
+                },
+                "autocomplete_filter": {
+                    "type": "edge_ngram",
+                    "min_gram": 2,
+                    "max_gram": 20
+                }
+            },
+            "analyzer": {
+                "autocomplete": {
+                    "type": "custom",
+                    "tokenizer": "standard",
+                    "filter": [
+                        "lowercase",
+                        "autocomplete_filter"
+                    ]
+                },
+                "russian_morphology": {
+                    "type": "custom",
+                    "tokenizer": "standard",
+                    "filter": [
+                        "lowercase",
+                        "russian_stop",
+                        "russian_stemmer"
+                    ]
+                }
+            }
+        }
+    },
+    "mappings": {
+        "properties": {
+            "title": {
+                "type": "text",
+                "analyzer": "russian_morphology",
+                "fields": {
+                    "autocomplete": {
+                        "type": "text",
+                        "analyzer": "autocomplete",
+                        "search_analyzer": "standard"
+                    },
+                    "russian": {
+                        "type": "text",
+                        "analyzer": "russian_morphology"
+                    }
+                }
+            },
+            "description": {
+                "type": "text",
+                "analyzer": "standard"
+            },
+            "category": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                    }
+                }
+            },
+            "price": {
+                "type": "long"
+            },
+            "sku": {
+                "type": "text",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                    }
+                }
+            },
+            "stock": {
+                "properties": {
+                    "shop": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "stock": {
+                        "type": "long"
+                    }
+                }
+            }
+        }
+    }
+}
