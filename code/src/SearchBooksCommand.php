@@ -2,7 +2,8 @@
 
 namespace Pasha234\Hw10;
 
-use Elastic\Elasticsearch\ClientBuilder;
+use Pasha234\Hw10\ElasticSearchHelper;
+use Pasha234\Hw10\Models\Book;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Input\InputInterface;
@@ -36,7 +37,7 @@ class SearchBooksCommand extends Command
         $output->writeln($searchInfoString);
 
         try {
-            $response = ElasticSearch::searchBooks($search, $price, $category);
+            $response = ElasticSearchHelper::searchBooks($search, $price, $category);
         } catch (\Exception $e) {
             $output->writeln('<error>Ошибка обращения к Elasticsearch: ' . $e->getMessage() . '</error>');
             return Command::FAILURE;
@@ -67,25 +68,22 @@ class SearchBooksCommand extends Command
 
     protected function outputResponse($response, OutputInterface $output)
     {
-        $hits = $response['hits']['hits'];
-        if (empty($hits)) {
+        if (empty($response)) {
             $output->writeln('<comment>Ничего не найдено.</comment>');
         } else {
-            foreach ($hits as $hit) {
+            foreach ($response as $hit) {
                 $this->outputItem($hit, $output);
             }
         }
     }
 
-    protected function outputItem($hit, OutputInterface $output)
+    protected function outputItem(Book $source, OutputInterface $output)
     {
-        $source = $hit['_source'];
+        $source = $source->toArray();
         $output->writeln("→ {$source['title']} (категория - {$source['category']}) — {$source['price']} ₽");
 
         if (!empty($source['stock']) && is_array($source['stock'])) {
-            foreach ($source['stock'] as $stockEntry) {
-                $shop = $stockEntry['shop'] ?? '';
-                $qty = $stockEntry['stock'] ?? 0;
+            foreach ($source['stock'] as $shop => $qty) {
                 $output->writeln("   - {$shop}: {$qty} в наличии");
             }
         } else {
@@ -97,7 +95,7 @@ class SearchBooksCommand extends Command
 
     protected function askCategory(InputInterface $input, OutputInterface $output): ?string
     {
-        $categories = ElasticSearch::getCategories();
+        $categories = ElasticSearchHelper::getCategories();
 
         if (empty($categories)) {
             $output->writeln('<comment>Категории не найдены, фильтрация не будет применена.</comment>');
